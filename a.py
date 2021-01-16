@@ -16,7 +16,6 @@ class FaceDataset(Dataset):
     def __init__(self, path, over_sample=False, augment=False):
         data = torch.tensor(pd.read_csv(path, header=None).values)
         y, X = data[:,0], data[:,1:]
-        print(y.shape, X.shape)
         y = y.squeeze()
         
         self.X = X.float()
@@ -48,12 +47,9 @@ if __name__ == '__main__':
     # args[1]: train_file, args[2]: test_file, args[3]: output_file
     tic = time.time()
     
-    dataset = FaceDataset(sys.argv[1])
-    size = dataset.__len__()
+    train_data = FaceDataset(sys.argv[1])
     
-    train_data, val_data = random_split(dataset, [int(0.9 * size), int(0.1 * size)]) #90-10 train-val split
-    
-    batch_size = 32
+    batch_size = 64
     train_data_loader = DataLoader(train_data, batch_size, shuffle=True, num_workers=4)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,11 +57,15 @@ if __name__ == '__main__':
 
     net = NNet()
     net = net.to(device)
+    freq = np.bincount(train_data.y)
+    inv_freq = train_data.y.shape[0] / freq
+    inv_freq = 7 * inv_freq / inv_freq.sum()
 
-    loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters(), lr=1e-4)
+    loss_function = nn.CrossEntropyLoss(weight=torch.tensor(inv_freq).float().cuda())
     
-    max_epochs = 10
+    optimizer = optim.Adam(net.parameters(), lr=3e-4)
+    
+    max_epochs = 60
     for epoch in range(max_epochs):
         
         for i, data in enumerate(train_data_loader, 0):
