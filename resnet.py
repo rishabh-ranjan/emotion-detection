@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
-from PIL import Image
 import torchvision.models as models
 import torchvision.transforms as transforms
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
