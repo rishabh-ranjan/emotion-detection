@@ -58,7 +58,7 @@ if __name__ == '__main__':
     for epoch in range(5):
         lr = lr_init / (epoch + 1)
 
-        optimizer = optim.Adam(resnet.parameters(), lr=lr)
+        optimizer = optim.Adam(resnet.parameters(), lr=lr, weight_decay=5e-3)
         for i, data in enumerate(loader, 0):
             images, classes = data
             images, classes = images.to(device).float(), classes.to(device).long()
