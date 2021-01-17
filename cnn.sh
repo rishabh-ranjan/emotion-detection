@@ -1,8 +1,8 @@
 #!/bin/bash
 ### Set the job name (for your reference)
-#PBS -N cnn_3_64 -e cnn_0.001_64.err -o cnn_0.001_64.out
+#PBS -N ccnn_0.001_64 -e ccnn_0.001_64.err -o ccnn_0.001_64.out
 ### Set the project name, your department code by default
-#PBS -P neurosub
+#PBS -P cse
 ### Request email when job begins and ends
 #PBS -m bea
 ### Specify email address to use for notification.

@@ -67,8 +67,9 @@ class Model(nn.Module):
     def predict(self, X):
         return torch.argmax(self.forward(X), dim=-1)
 
-def train(model, opt, train_loader, n_epochs, test_loader=None):
+def train(model, opt, train_loader, n_epochs, test_loader=None, private_loader=None):
     losses = []
+    mx_F1 = 0
     for epoch in range(n_epochs):
         model.train()
         for X, y in train_loader:
@@ -102,6 +103,18 @@ def train(model, opt, train_loader, n_epochs, test_loader=None):
             print(f'P: {precision_score(true, pred, average="macro"):.5f}', end=' ')
             print(f'R: {recall_score(true, pred, average="macro"):.5f}', end=' ')
             print(f'F1: {f1_score(true, pred, average="macro"):.5f}', flush=True)
+            F1 = f1_score(true, pred, average='macro')
+            if F1 > mx_F1:
+                mx_F1 = F1
+                if private_loader is not None:
+                    pred = []
+                    for X, _ in private_loader:
+                        X = X.to(device)
+                        yhat = model.predict(X)
+                        pred.extend(yhat.cpu().tolist())
+                    with open(f'pred_{epoch+1}.csv', 'w') as f:
+                        for i,x in enumerate(pred):
+                            f.write(f'{i},{int(x)}\n')
 
     return losses
 
@@ -116,15 +129,18 @@ if __name__ == '__main__':
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print('device:', device)
     print('loading data')
-    train_set = FaceDataset('train.csv', over_sample=True)
+    train_set = FaceDataset('orig_train.csv', over_sample=True)
     test_set = FaceDataset('public_test.csv')
+    private_set = FaceDataset('private.csv')
     print('train size:', len(train_set))
     print('test size:', len(test_set))
+    print('private size:', len(private_set))
     model = Model().to(device)
     opt = optim.Adam(model.parameters(), lr=lr)
     train_loader = data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
-    test_loader = data.DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=4)
-    train_losses = train(model, opt, train_loader, n_epochs, test_loader)
+    test_loader = data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    private_loader = data.DataLoader(private_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_losses = train(model, opt, train_loader, n_epochs, test_loader, private_loader)
     plt.plot(train_losses)
     plt.savefig('cnn.png')
     print('training losses plotted in cnn.png')
